@@ -1,0 +1,36 @@
+{
+  "name": "kapa/XsdLibrary",
+  "version": "0.0.2",
+  "description": "A collection of XSD documents. Supports XSD specific lookups throughout these documents.",
+  "main": "dist/XsdLibrary.js",
+  "dependencies": {
+    "requirejs": "latest",
+    "requirejs-text": "latest",
+    "xsd": "bazmegakapa/kapa-xsd",
+    "Library": "bazmegakapa/kapa-Library",
+    "objTools": "bazmegakapa/kapa-objTools"
+  },
+  "install": {
+    "path": {
+      "js": "js/lib"
+    },
+    "sources" : {
+      "requirejs-text" : "bower_components/requirejs-text/text.js"
+    }
+  },
+  "keywords": [
+    "xsd"
+  ],
+  "authors": [
+    "Kapa <kapa@sipaksi.net>"
+  ],
+  "license": "GPLv3",
+  "homepage": "http://github.com/bazmegakapa/kapa-XsdLibrary",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ]
+}
