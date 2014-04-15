@@ -90,7 +90,40 @@ function (objTools, Library, xsd, basetypesXsd) {
 				xsdNow = this.findTypeDefinition(basetype.namespaceURI, basetype.name);
 			} while (xsdNow !== null);
 			return basetype.name;
-		}
+        },
+        getTypeForXmlNode: function (node) {
+            //collect parents until we find one with xsi:type
+            var parents = [];
+            var current = node;
+            while (current && !xsd.getTypeFromNodeAttr(current, 'type', xsd.xsi)) {
+                current = current.parentNode;
+                parents.push(current);
+            }
+            //get the xsd node for the typed ancestor
+            var currParent, typeAttr, xsdNode;
+            while (parents.length) {
+                currParent = parents.pop();
+                typeAttr = xsd.getTypeFromNodeAttr(currParent, 'type', xsd.xsi);
+                if (typeAttr) {
+                    xsdNode = this.findTypeDefinitionFromNodeAttr(currParent, 'type', xsd.xsi);
+                }
+                else {
+                    xsdNode = this.getComplexTypeChild(xsdNode, currParent.localName);
+                }
+            }
+            var typeNode = this.getComplexTypeChild(xsdNode, node.localName);
+            var type = this.findTypeDefinitionFromNodeAttr(typeNode, 'type');
+            if (type === null) {
+                return xsd.getTypeFromNodeAttr(typeNode, 'type').name;
+            }
+            else if (type.namespaceURI === xsd.xs) {
+                return type.getAttribute('name');
+            }
+            //SHOULD HANDLE restricted simple types
+        },
+        getComplexTypeChild: function (xsdNode, name) {
+            return xsdNode.querySelector('element[name="' + name + '"]');
+        }
 	});
 
 	return objTools.makeConstructor(function XsdLibrary () {}, xsdLibrary);
