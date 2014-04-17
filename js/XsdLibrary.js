@@ -59,9 +59,9 @@ function (objTools, Library, xsd, basetypesXsd) {
 			var xsds = this.getItem(namespace) || [];
 			var xsdNodes;
 			for (var i = 0, l = xsds.length; i < l; i++) {
-				xsdNodes = xsd.findTypeByName(xsds[i], name);
-				if (xsdNodes.length > 0) {
-					return xsdNodes[0];
+				xsdNode = xsd.findTypeByName(xsds[i], name);
+				if (xsdNode) {
+					return xsdNode;
 				}
 			}
 			return null;
@@ -76,20 +76,6 @@ function (objTools, Library, xsd, basetypesXsd) {
 		findTypeDefinitionFromNodeAttr: function (node, typeAttr, typeAttrNS) {
 			var type = xsd.getTypeFromNodeAttr(node, typeAttr, typeAttrNS);
 			return type ? this.findTypeByName(type.namespaceURI, type.name) : null;
-		},
-		/**
-		 * Finds the base type for a simpleType definition. Follows inheritance until it reaches a base XSD type.
-		 * @param {Element} node - The type definition node to start from.
-		 * @returns {string} The name of the base type (like: string, decimal, dateTime, etc.).
-		 */
-		findBaseTypeFor: function (node) {
-			var xsdNow = node;
-			var basetype;
-			do {
-				basetype = xsd.getRestrictedType(xsdNow);
-				xsdNow = this.findTypeDefinition(basetype.namespaceURI, basetype.name);
-			} while (xsdNow !== null);
-			return basetype.name;
 		},
 		findElementForXmlNode: function (node) {
 			var parents = [];
@@ -117,6 +103,27 @@ function (objTools, Library, xsd, basetypesXsd) {
 				xsdNode = this.findTypeDefinitionFromNodeAttr(xsdNode, 'type') || xsdNode.children[0];
 			}
 			return xsd.findElement(xsdNode, name);
+		},
+		findRestrictedType: function (node) {
+			var	element = _(node.children).find(function (child) {
+				return child.namespaceURI === xsd.xs && 
+					child.localName === 'restriction';
+			});
+			console.log(element);
+			return element ? this.findTypeDefinitionFromNodeAttr(element, 'base') : null;
+		},
+		/**
+		 * Finds the base type for a simpleType definition. Follows inheritance until it reaches a base XSD type.
+		 * @param {Element} node - The type definition node to start from.
+		 * @returns {string} The name of the base type (like: string, decimal, dateTime, etc.).
+		 */
+		findBaseTypeFor: function (node) {
+			var curr, base;
+			do {
+				curr = base ? base : node;
+				base = this.findRestrictedType(curr);
+			} while (base);
+			return curr.getAttribute('name');
 		}
 	});
 
