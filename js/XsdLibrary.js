@@ -55,7 +55,7 @@ function (objTools, Library, xsd, basetypesXsd) {
 		 * @param {string} name - The name of the type to be found.
 		 * @returns {Element|null}
 		 */
-		findTypeDefinition: function (namespace, name) {
+		findTypeByName: function (namespace, name) {
 			var xsds = this.getItem(namespace) || [];
 			var xsdNodes;
 			for (var i = 0, l = xsds.length; i < l; i++) {
@@ -75,7 +75,7 @@ function (objTools, Library, xsd, basetypesXsd) {
 		 */
 		findTypeDefinitionFromNodeAttr: function (node, typeAttr, typeAttrNS) {
 			var type = xsd.getTypeFromNodeAttr(node, typeAttr, typeAttrNS);
-			return type ? this.findTypeDefinition(type.namespaceURI, type.name) : null;
+			return type ? this.findTypeByName(type.namespaceURI, type.name) : null;
 		},
 		/**
 		 * Finds the base type for a simpleType definition. Follows inheritance until it reaches a base XSD type.
@@ -107,12 +107,10 @@ function (objTools, Library, xsd, basetypesXsd) {
             var typeNode = this.getSubNode(node, xsdNode);
             return typeNode;
         },
-        getElementTypeDefinition: function (element) {
-            return this.findTypeDefinitionFromNodeAttr(element, 'type') ||
-                element.children[0];
-        },
-        getComplexTypeChild: function (xsdNode, name) {
-            return xsdNode.querySelector('element[name="' + name + '"]');
+        findElementType: function (elem) {
+ 			var tdef = xsd.getTypeFromNodeAttr(elem, 'type');
+			return xsd.getEmbeddedType(elem) ||
+				this.findTypeByName(tdef.namespaceURI, tdef.name);
         },
         getSubNode: function (xmlNode, xsdNode) {
             var typeAttr = xsd.getTypeFromNodeAttr(xmlNode, 'type', xsd.xsi);
@@ -123,7 +121,7 @@ function (objTools, Library, xsd, basetypesXsd) {
                 xsdNode = this.findTypeDefinitionFromNodeAttr(xsdNode, 'type') ||
                     xsdNode.children[0];
             }
-            return this.getComplexTypeChild(xsdNode, xmlNode.localName);
+            return xsd.findElement(xsdNode, xmlNode.localName);
         }
 	});
 
