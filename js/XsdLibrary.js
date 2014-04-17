@@ -59,7 +59,7 @@ function (objTools, Library, xsd, basetypesXsd) {
 			var xsds = this.getItem(namespace) || [];
 			var xsdNodes;
 			for (var i = 0, l = xsds.length; i < l; i++) {
-				xsdNodes = xsd.findTypeDefinition(xsds[i], name);
+				xsdNodes = xsd.findTypeByName(xsds[i], name);
 				if (xsdNodes.length > 0) {
 					return xsdNodes[0];
 				}
@@ -90,39 +90,34 @@ function (objTools, Library, xsd, basetypesXsd) {
 				xsdNow = this.findTypeDefinition(basetype.namespaceURI, basetype.name);
 			} while (xsdNow !== null);
 			return basetype.name;
-        },
-        findElementForXmlNode: function (node) {
-            var parents = [];
-            var current = node;
-            while (current && !xsd.getTypeFromNodeAttr(current, 'type', xsd.xsi)) {
-                current = current.parentNode;
-                parents.push(current);
-            }
+		},
+		findElementForXmlNode: function (node) {
+			var parents = [];
+			xsd.getFirstFilteredAncestor(node, function (current) {
+				parents.push(current);
+				return xsd.getTypeFromNodeAttr(current, 'type', xsd.xsi);
+			});
 
-            var currParent, xsdNode;
-            while (parents.length) {
-                currParent = parents.pop();
-                xsdNode = this.getSubNode(currParent, xsdNode);
-            }
-            var typeNode = this.getSubNode(node, xsdNode);
-            return typeNode;
-        },
-        findElementType: function (elem) {
- 			var tdef = xsd.getTypeFromNodeAttr(elem, 'type');
-			return xsd.getEmbeddedType(elem) ||
+			var xsdNode;
+			_(parents.reverse()).each(function (currParent) {
+				xsdNode = xsdNode ?
+					this.findXsdSubNode(xsdNode, currParent.localName) :
+					this.findTypeDefinitionFromNodeAttr(currParent, 'type', xsd.xsi);
+			}, this);
+
+			return this.findXsdSubNode(xsdNode, node.localName);
+		},
+		findElementType: function (elem) {
+			var tdef = xsd.getTypeFromNodeAttr(elem, 'type');
+			return xsd.getEmbeddedType(elem) || 
 				this.findTypeByName(tdef.namespaceURI, tdef.name);
-        },
-        getSubNode: function (xmlNode, xsdNode) {
-            var typeAttr = xsd.getTypeFromNodeAttr(xmlNode, 'type', xsd.xsi);
-            if (typeAttr) {
-                return this.findTypeDefinitionFromNodeAttr(xmlNode, 'type', xsd.xsi);
-            }
-            if (xsdNode.localName === 'element') {
-                xsdNode = this.findTypeDefinitionFromNodeAttr(xsdNode, 'type') ||
-                    xsdNode.children[0];
-            }
-            return xsd.findElement(xsdNode, xmlNode.localName);
-        }
+		},
+		findXsdSubNode: function (xsdNode, name) {
+			if (xsdNode.localName === 'element') {
+				xsdNode = this.findTypeDefinitionFromNodeAttr(xsdNode, 'type') || xsdNode.children[0];
+			}
+			return xsd.findElement(xsdNode, name);
+		}
 	});
 
 	return objTools.makeConstructor(function XsdLibrary () {}, xsdLibrary);
