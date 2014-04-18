@@ -28,32 +28,59 @@ define(['objTools', 'xml'], function (objTools, xml) {
 		 * @memberof xsd
 		 */
 		xsi: 'http://www.w3.org/2001/XMLSchema-instance',
-		/**
-		 * Find root `element` element with the given name in a document.
-		 * Complex types will not be traversed for further elements, only root elements are checked.
-		 * @param {Document} doc - The XSD document to search in.
-		 * @param {string} name - The name to look for. Will match if the `name` attribute of an `element` is equal to the name given.
-		 * @returns {Element|null}
-		 */
-		findElement: function (doc, name) {
-			return _(doc.documentElement.children).find(function (child) {
+		findElement: function (parent, name) {
+			if (parent instanceof Document) { //document
+				elems = parent.documentElement.children;
+			}
+			else { //complexType
+				elems = this.getComplexTypeElements(parent);
+			}
+			return _(elems).find(function (child) {
 				return child.namespaceURI === xsd.xs
 					&& child.localName === 'element'
 					&& child.getAttribute('name') === name;
 			});
 		},
-		/**
-		 * Find type definition for the given type in a document.
-		 * Searches for `complexType` and `simpleType` elements whose `name` attribute matches the given type.
-		 * @param {Document} doc - The XSD document to search in.
-		 * @param {string} type - The type to look for.
-		 * @returns {Element|null}
-		 */
-		findTypeDefinition: function (doc, type) {
+		findTypeByName: function (doc, name) {
 			var selector = 
-				 'complexType[name="' + type + '"],'
-				+ 'simpleType[name="' + type + '"]';
-			return doc.querySelectorAll(selector);
+				 'complexType[name="' + name + '"],'
+				+ 'simpleType[name="' + name + '"]';
+			return doc.querySelectorAll(selector)[0];
+		},
+		findElementType: function (elem) {
+			var tdef = this.getTypeFromNodeAttr(elem, 'type');
+			return this.getEmbeddedType(elem) ||
+				this.findTypeByName(elem.ownerDocument, tdef.name);
+		},
+		getEmbeddedType: function (elem) {
+			return _(elem.children).find(function (child) {
+				return child.localName === 'complexType' ||
+					child.localName === 'simpleType';
+			});
+		},
+		getComplexTypeContent: function (complexType) {
+			return _(complexType.children).find(function (child) {
+				return child.localName === 'complexContent' ||
+					child.localName === 'simpleContent';
+			}) || complexType;	
+		},
+		getComplexTypeElements: function (complexType) {
+			var root = this.getComplexTypeContent(complexType);
+			var ext = _(root.children).find(function (child) {
+				return child.localName === 'extension' ||
+					child.localName === 'restriction';
+			}) || root;
+			var seq = _(ext.children).find(function (child) {
+				return child.localName === 'sequence';
+			});
+			return _(seq.children).filter(function (child) {
+				return child.localName === 'element';
+			});
+		},
+		getComplexTypeAsserts: function (complexType) {
+			return _(complexType.children).filter(function (child) {
+				return child.localName === 'assert';
+			});
 		},
 		/**
 		 * Reads the type of the element from its given attribute, resolves namespace URI too.
@@ -75,18 +102,6 @@ define(['objTools', 'xml'], function (objTools, xml) {
 				};
 			}
 			else return null;
-		},
-		/**
-		 * Finds the type that is restricted by the given element (through the use of &lt;restriction&gt;).
-		 * @param {Element} node - The element whose parent type we want to know.
-		 * @returns {{ namespaceURI: string, name: string } | null} The parent type of the element - an object with a `namespaceURI` and `name` property.
-		 */
-		getRestrictedType: function (node) {
-			var	element = _(node.children).find(function (child) {
-				return child.namespaceURI === xsd.xs
-					&& child.localName === 'restriction';
-			});
-			return element ? this.getTypeFromNodeAttr(element, 'base') : null;
 		},
 		/**
 		 * Retrieves the facets this element specifies as a restriction.
