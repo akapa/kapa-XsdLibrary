@@ -77,6 +77,36 @@ var XsdLibrary = function (objTools, Library, xsd, basetypesXsd) {
                         base = this.findRestrictedType(curr);
                     } while (base);
                     return curr.getAttribute('name');
+                },
+                collectFacets: function (simpleType) {
+                    var facets = [];
+                    var currType = simpleType;
+                    var currFacets, enums;
+                    var foundFacetTypes = [];
+                    var processFacet = function (facet) {
+                        var fname = facet.localName;
+                        var isEnum = fname === 'enumeration';
+                        var isAssertion = fname === 'assertion';
+                        var isAlreadyFound = foundFacetTypes.indexOf(fname) !== -1;
+                        var isFixed = !isEnum && (isAssertion || facet.getAttribute('fixed') === 'true');
+                        if (!isAlreadyFound || isFixed) {
+                            (isEnum ? enums : facets).push(facet);
+                            if (!isEnum) {
+                                foundFacetTypes.push(fname);
+                            }
+                        }
+                    };
+                    while (currType) {
+                        currFacets = xsd.findRestrictingFacets(currType);
+                        enums = [];
+                        _(currFacets).each(processFacet);
+                        if (enums.length) {
+                            facets.push(enums);
+                            foundFacetTypes.push('enumeration');
+                        }
+                        currType = this.findRestrictedType(currType);
+                    }
+                    return facets;
                 }
             });
         return objTools.makeConstructor(function XsdLibrary() {
