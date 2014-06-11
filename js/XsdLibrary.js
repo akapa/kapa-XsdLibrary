@@ -100,7 +100,8 @@ function (objTools, Library, xsd, basetypesXsd) {
 		},
 		findXsdSubNode: function (xsdNode, name) {
 			if (xsdNode.localName === 'element') {
-				xsdNode = this.findTypeDefinitionFromNodeAttr(xsdNode, 'type') || xsdNode.children[0];
+				xsdNode = this.findTypeDefinitionFromNodeAttr(xsdNode, 'type') || 
+					xsd.getEmbeddedType(xsdNode);
 			}
 			return xsd.findElement(xsdNode, name);
 		},
@@ -109,7 +110,6 @@ function (objTools, Library, xsd, basetypesXsd) {
 				return child.namespaceURI === xsd.xs && 
 					child.localName === 'restriction';
 			});
-			console.log(element);
 			return element ? this.findTypeDefinitionFromNodeAttr(element, 'base') : null;
 		},
 		findExtendedType: function (node) {

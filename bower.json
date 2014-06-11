@@ -24,7 +24,7 @@
   "authors": [
     "Kapa <kapa@sipaksi.net>"
   ],
-  "license": "GPLv3",
+  "license": "GPL-3.0",
   "homepage": "http://github.com/bazmegakapa/kapa-XsdLibrary",
   "ignore": [
     "**/.*",
